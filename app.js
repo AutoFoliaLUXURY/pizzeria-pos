@@ -113,6 +113,19 @@ function printReceipt(o) {
     ${o.note ? '<hr>Shënim: ' + esc(o.note) : ''}<hr><div class="c">Faleminderit!</div>`);
 }
 
+/* ============ Instalimi si aplikacion (Chrome / Edge) ============ */
+let installEvt = null;
+const installBtnHtml = cls => `<button type="button" class="${cls} instBtn ${installEvt ? '' : 'hide'}">⬇ Instalo programin</button>`;
+const showInstallBtns = () => document.querySelectorAll('.instBtn').forEach(b => b.classList.toggle('hide', !installEvt));
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; showInstallBtns(); });
+window.addEventListener('appinstalled', () => { installEvt = null; showInstallBtns(); toast('Programi u instalua ✔'); });
+document.addEventListener('click', async e => {
+  if (!e.target.closest('.instBtn') || !installEvt) return;
+  installEvt.prompt();
+  await installEvt.userChoice;
+  installEvt = null; showInstallBtns();
+});
+
 /* ============ Nisja / hyrja ============ */
 let ME = null, tab = '', P = [], pollT = null;
 async function boot() {
@@ -132,7 +145,8 @@ async function showLogin() {
     <label>Email</label><input id="le" type="email" autocomplete="username" required>
     <label>Fjalëkalimi</label><input id="lp" type="password" autocomplete="${setup ? 'new-password' : 'current-password'}" required>
     ${setup ? '<label>Përsërit fjalëkalimin</label><input id="lp2" type="password" autocomplete="new-password" required>' : ''}
-    <button class="btn big" style="margin-top:16px">${setup ? 'Krijo' : 'Hyr'}</button><div class="err" id="lerr"></div></form></div>`;
+    <button class="btn big" style="margin-top:16px">${setup ? 'Krijo' : 'Hyr'}</button><div class="err" id="lerr"></div>
+    ${installBtnHtml('btn sec big')}</form></div>`;
   $('lf').onsubmit = async e => {
     e.preventDefault();
     const email = $('le').value, password = $('lp').value;
@@ -166,7 +180,7 @@ function shell() {
   const brand = sup ? `<div class="ph">⚙</div><b>Super Admin</b>` : `${b.logo ? `<img src="${esc(b.logo)}" alt="">` : '<div class="ph">🍕</div>'}<b>${esc(b.name)}</b>`;
   const left = !sup && u.role === 'owner' && b.paidUntil ? daysLeft(b.paidUntil) : 99;
   $('app').innerHTML = `<header><div class="brand">${brand}</div><nav id="nav">${Object.entries(TABS()).map(([k, [l]]) => `<button data-t="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join('')}</nav>
-    <div class="who">${esc(u.name || u.email)} · ${{ super: 'Super admin', owner: 'Pronar', worker: 'Punëtor' }[u.role]}<button id="pw">🔑</button><button id="lo">Dil</button></div></header>
+    <div class="who">${esc(u.name || u.email)} · ${{ super: 'Super admin', owner: 'Pronar', worker: 'Punëtor' }[u.role]}${installBtnHtml('')}<button id="pw">🔑</button><button id="lo">Dil</button></div></header>
     <main>${left <= 7 ? `<div class="banner">⚠ Abonimi skadon më <b>${dmy(b.paidUntil)}</b> (${left <= 0 ? 'sot' : 'pas ' + left + ' ditësh'}). Kontaktoni administratorin për vazhdim.</div>` : ''}<div id="view"></div></main>`;
   $('nav').onclick = e => { const t = e.target.dataset.t; if (!t) return; tab = t; document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('on', x.dataset.t === t)); go(); };
   $('lo').onclick = logout;
